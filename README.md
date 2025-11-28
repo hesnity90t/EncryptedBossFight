@@ -1,352 +1,400 @@
-# Encrypted Player Registry · Zama FHEVM
+# Encrypted Boss Fight — fhEVM Raid
 
-A minimal demo dApp that showcases how to build a privacy‑preserving player registry on top of the **Zama FHEVM**.
+Turn-based boss fight on **Zama fhEVM**: the player HP, boss HP and hit results are stored and updated **fully encrypted on-chain**. The browser interacts with the contract through the **Zama Relayer** and only decrypts what the connected wallet is allowed to see.
 
-Each player registers with:
+This repository contains:
 
-* a **public name** stored in plaintext (for leaderboards / UX), and
-* a **fully homomorphic encrypted age** stored as an `euint8` in the smart contract.
+* **Solidity contract** `EncryptedBossFight.sol` — encrypted boss, per‑player encrypted HP and combat logic.
+* **Single‑file frontend** (`index.html`) — glassmorphism UI with encrypted logs, built on top of a minimal `fheCore` wrapper.
 
-The age is never revealed on-chain in clear form. The player can decrypt their own age off‑chain using the **Relayer SDK 0.2.0** and an EIP‑712 signature.
+> Language: UI & code comments in **English**, meta‑documentation can be in Russian.
+
+---
+
+## High‑level idea
+
+* Owner configures an **encrypted boss**: `max HP`, `defense`, `attack` — all as `euint16`.
+* Any wallet can **Join fight** with an encrypted initial HP.
+* A player chooses **attack power** + spell and sends an **encrypted attack**.
+* The contract updates **both HP values inside ciphertext** using fhEVM arithmetic.
+* Frontend calls `userDecrypt` via Relayer to learn only:
+
+  * player current HP;
+  * boss current HP;
+  * whether the last hit passed defense.
+* UI visualises:
+
+  * HP bars for player and boss;
+  * last hit status (success / blocked);
+  * battle result (victory / defeat / draw / in progress);
+  * detailed encrypted logs.
 
 ---
 
 ## Tech stack
 
-* **Smart contract**: Solidity `^0.8.24`
-
-  * `@fhevm/solidity` (Zama FHE library)
-  * `SepoliaConfig` from Zama FHEVM config
-* **Frontend**: single‑page HTML app
-
-  * `@zama-fhe/relayer-sdk` **0.2.0** (browser build)
-  * `ethers` **v6** (ESM, `BrowserProvider`, `Contract`)
-* **Network**: Sepolia FHEVM (testnet)
-* **Tooling**: Hardhat + hardhat‑deploy (backend), static web server (frontend)
-
-Frontend entry point lives at:
-
-```text
-frontend/public/index.html
-```
+* **Solidity** (Zama fhEVM flavor, `FHE` / `euint16` / `ebool`).
+* **Hardhat** for compilation / deployment.
+* **Zama Relayer SDK**: `https://cdn.zama.org/relayer-sdk-js/0.3.0-5/relayer-sdk-js.js`.
+* **Ethers v6** (browser‑side, via CDN) for contract interaction.
+* **Vanilla HTML/CSS/JS** single page, no build step required for the frontend.
 
 ---
 
-## Main idea
+## Project structure
 
-The dApp demonstrates a simple pattern for Zama FHEVM:
-
-1. The user encrypts sensitive data (age) **in the browser** using the Relayer SDK.
-2. The encrypted value is sent to the smart contract as an `externalEuint8` handle + `proof`.
-3. The contract converts this into an `euint8` and stores it in state.
-4. The user can later:
-
-   * Inspect the **encrypted age handle** on-chain, and
-   * Use **userDecrypt** with an EIP‑712 signature to recover their age off‑chain.
-
-This pattern is reusable for any “profile with private fields” system.
-
----
-
-## Smart contract overview
-
-Contract name: `EncryptedPlayerRegistry`
-
-Key properties:
-
-* Uses only official Zama FHE Solidity library:
-
-  * `import { FHE, euint8, externalEuint8 } from "@fhevm/solidity/lib/FHE.sol";`
-* Extends `SepoliaConfig` for the FHEVM network configuration.
-* Encrypted fields are always stored as `euint8` and **never decrypted on-chain**.
-* Access control over ciphertexts is handled via:
-
-  * `FHE.allowThis(ciphertext)`
-  * `FHE.allow(ciphertext, user)`
-  * `FHE.makePubliclyDecryptable(ciphertext)` for opt‑in public auditability.
-
-### Storage
-
-```solidity
-struct Player {
-    bool exists;   // registration flag
-    string name;   // public display name
-    euint8 age;    // encrypted age
-}
-
-mapping(address => Player) private _players;
-address public owner;
-```
-
-* `name` is stored in the clear.
-* `age` is an encrypted `euint8`.
-
-### Public / player functions
-
-* `registerEncrypted(string name, externalEuint8 ageExt, bytes proof)`
-
-  * Encrypt age in the browser using the Relayer SDK.
-  * Call this function with the encrypted handle and proof.
-  * Contract:
-
-    * calls `FHE.fromExternal(ageExt, proof)` → `euint8` ciphertext;
-    * stores it in `_players[msg.sender].age`;
-    * uses `FHE.allowThis` and `FHE.allow(ciphertext, msg.sender)`.
-
-* `registerPlain(string name, uint8 agePlain)`
-
-  * Dev/demo helper.
-  * Converts plaintext `agePlain` into ciphertext using `FHE.asEuint8` on-chain.
-
-* `updateName(string newName)`
-
-  * Updates only the public `name` field.
-
-* `updateAgeEncrypted(externalEuint8 newAgeExt, bytes proof)`
-
-  * Updates only the encrypted age.
-
-* `isRegistered(address player) -> bool`
-
-  * Returns whether a player has a profile.
-
-* `getPlayer(address player) -> (bool exists, string name, bytes32 ageHandle)`
-
-  * Returns profile metadata and the encrypted age handle (`bytes32`).
-  * `ageHandle` can be fed to public decryption or user decryption off-chain.
-
-* `getMyAgeHandle() -> bytes32`
-
-  * Convenience method to fetch the `bytes32` handle for `msg.sender`’s age.
-
-* `makeMyAgePublic()`
-
-  * Calls `FHE.makePubliclyDecryptable(_players[msg.sender].age)`.
-  * Allows anyone to call `publicDecrypt` on the ciphertext.
-
-### Owner/admin functions
-
-* `owner` / `transferOwnership(address newOwner)`
-
-  * Standard ownership pattern.
-
-* `makePlayerAgePublic(address player)`
-
-  * For audits / demos, owner can force a player’s age to be publicly decryptable.
-
-* `clearPlayer(address player)`
-
-  * Logically clears a player profile.
-  * Sets `exists = false`, wipes `name`, and replaces age with `FHE.asEuint8(0)`.
-  * Avoids using `delete` on `euint8` (not supported).
-
----
-
-## Frontend overview
-
-The frontend is a single `index.html` with:
-
-* A **three‑column layout**:
-
-  * Player onboarding (name + encrypted age).
-  * “My profile” section (view profile, update name/age, decrypt age).
-  * Owner console (mark ages public / clear profiles).
-* A **dark neon UI** designed to be visually distinct from other demos.
-* Uses **Relayer SDK 0.2.0** and **ethers v6** via ESM CDNs.
-
-Key flows:
-
-### 1. Connect wallet & Relayer
-
-* Uses `BrowserProvider(window.ethereum)` from ethers v6.
-* Automatically switches to Sepolia (chain id `0xaa36a7`).
-* Initializes the Relayer with:
-
-```ts
-await initSDK();
-relayer = await createInstance({
-  ...SepoliaConfig,
-  relayerUrl: "https://relayer.testnet.zama.cloud",
-  network: window.ethereum,
-  debug: true,
-});
-```
-
-### 2. Encrypted registration
-
-* User enters `name` + `age`.
-* Frontend calls:
-
-```ts
-const input = relayer.createEncryptedInput(CONTRACT_ADDRESS, user);
-input.add8(age);                      // age is uint8
-const { handles, inputProof } = await input.encrypt();
-
-await contract.registerEncrypted(name, handles[0], inputProof);
-```
-
-### 3. Decrypting age (userDecrypt)
-
-* Frontend calls `getMyAgeHandle()`.
-* Generates an ephemeral keypair with `generateKeypair()`.
-* Builds EIP‑712 data via `relayer.createEIP712(...)`.
-* Uses `signer.signTypedData(...)` (EIP‑712) and then:
-
-```ts
-const pairs = [{ handle, contractAddress: CONTRACT_ADDRESS }];
-const result = await relayer.userDecrypt(
-  pairs,
-  kp.privateKey,
-  kp.publicKey,
-  sig.replace("0x", ""),
-  [CONTRACT_ADDRESS],
-  user,
-  startTs,
-  daysValid,
-);
-```
-
-* Displays the decrypted age **only in the UI**, never sending it back on-chain.
-
----
-
-## Project layout
-
-A minimal layout (simplified):
+Exact layout can slightly differ, but the typical structure is:
 
 ```text
 .
 ├── contracts/
-│   └── EncryptedPlayerRegistry.sol
+│   └── EncryptedBossFight.sol
+├── deploy/
+│   └── 00_deploy_encrypted_boss_fight.ts   # or .js — Hardhat deploy script
 ├── frontend/
 │   └── public/
-│       └── index.html   # the SPA described above
-├── deploy/
-│   └── universal-deploy.ts
-├── hardhat.config.ts
+│       └── index.html                      # full single‑file frontend
+├── server.js                               # simple Express static server (optional)
+├── hardhat.config.ts                       # Hardhat + fhEVM config
 ├── package.json
 └── README.md
 ```
 
 ---
 
-## Installation & setup
+## Smart contract overview
 
-### 1. Clone & install dependencies
+The contract (simplified description):
+
+* `configureBoss(bytes32 encMaxHp, bytes32 encDefense, bytes32 encAttack, bytes proof)`
+
+  * Only owner.
+  * Stores encrypted boss stats and resets current HP to `maxHp`.
+
+* `joinFight(bytes32 encInitialHp, bytes proof)`
+
+  * Encrypts a fresh HP state for `msg.sender`.
+  * If a previous run existed, is overwritten (new game).
+
+* `attackBoss(bytes32 encAttackPower, bytes32 encSpellId, bytes proof)`
+
+  * Uses encrypted arithmetic (`FHE.add`, `FHE.sub`, `FHE.gt`, `FHE.select`) to compute damage and update:
+
+    * player HP,
+    * boss HP.
+  * Produces encrypted `hitSuccess` flag.
+
+* `getMyCombatState()` (view)
+
+  * Returns **handles only**:
+
+    * `hpHandle` (player HP),
+    * `lastHitHandle` (hit success),
+    * `joined` flag,
+    * `hasLastResult` flag.
+
+* `getBossHpHandles()` (view)
+
+  * Returns boss `maxHpHandle` and `currentHpHandle`.
+
+* `getBossMeta()` (view)
+
+  * Returns `exists` flag (configured or not).
+
+All encrypted arithmetic happens on-chain, the frontend never sees clear values unless the wallet is authorised to decrypt them via `userDecrypt`.
+
+---
+
+## Frontend overview
+
+Frontend is a **single HTML file** (`frontend/public/index.html`) that:
+
+1. Loads dependencies via CDN:
+
+   * `ethers@6` (`BrowserProvider`, `Contract`),
+   * `relayer-sdk-js` (`initSDK`, `createInstance`, `SepoliaConfig`, `generateKeypair`).
+2. Implements a tiny `fheCore` wrapper (in the same file):
+
+   * `configure({ contractAddress, abi })` — sets up contract + relayer URLs.
+   * `connectWallet()` / `disconnectWallet()` / `autoConnectIfAuthorized()`.
+   * `encryptUint16(value)` — wraps `createEncryptedInput().add16(value).encrypt()`.
+   * `userDecryptHandles(handles)` — builds `UserDecryptRequest` (EIP‑712) and calls `relayer.userDecrypt(...)`.
+   * `isOwner()` / `getState()` helpers.
+3. Renders an **Encrypted Boss Fight** dashboard:
+
+   * Player card — HP bar, initial HP, attack slider, spell chips, “Join fight” & “Attack boss” buttons.
+   * Boss card — encrypted boss portrait, HP bar, owner config inputs.
+   * Battle result banner — victory/defeat/draw/ongoing.
+   * Encrypted logs console.
+4. Keeps all state purely in browser memory — no backend.
+
+All logic is written in TypeScript‑style JS with careful `BigInt` handling (no `Number`/`BigInt` mixing, JSON logging via `safeStringify`).
+
+---
+
+## Prerequisites
+
+* **Node.js** ≥ 18
+* **npm / pnpm / yarn**
+* **MetaMask** (or any EIP‑1193 compatible wallet) installed in the browser
+* Access to **Zama fhEVM Sepolia testnet** (RPCs provided by Zama tooling)
+
+---
+
+## Installation
 
 ```bash
-git clone &lt;this-repo-url&gt;
-cd &lt;this-repo-folder&gt;
+# 1. Clone repo
+git clone https://github.com/<your-org-or-user>/encrypted-boss-fight.git
+cd encrypted-boss-fight
 
-# Install backend deps (Hardhat, hardhat-deploy, etc.)
+# 2. Install dependencies
 npm install
+# or
+pnpm install
 ```
 
-If the frontend uses its own `package.json` inside `frontend/`, also run:
+If you don’t use TypeScript, the Hardhat config may be in plain JS; commands stay the same.
 
-```bash
-cd frontend
-npm install
-cd ..
-```
+---
 
-### 2. Environment variables (Hardhat)
+## Hardhat: compile & deploy contract
 
-In the project root, create a `.env` file (or update an existing one):
+1. Configure **network** in `hardhat.config.(ts|js)` — point it to Zama fhEVM Sepolia.
 
-```bash
-SEPOLIA_RPC_URL=https://&lt;your-sepolia-rpc&gt;
-PRIVATE_KEY=0x&lt;your_deployer_private_key&gt;
-
-# Optional for universal-deploy
-CONTRACT_NAME=EncryptedPlayerRegistry
-CONSTRUCTOR_ARGS='[]'
-```
-
-> **Note:** never commit real private keys to Git. Use environment variables or a secure secret manager.
-
-### 3. Compile & deploy the contract
+2. Compile & deploy:
 
 ```bash
 npx hardhat clean
 npx hardhat compile
+
+# Example: deploy to sepolia
 npx hardhat deploy --network sepolia
 ```
 
-If you use the provided `universal-deploy.ts` script, it will pick up `CONTRACT_NAME` and `CONSTRUCTOR_ARGS` automatically.
+3. After deployment copy the contract address and
 
-Make sure the deployed address matches the one used by the frontend (`CONTRACT_ADDRESS` constant in `index.html`).
+   * update `CONTRACT_ADDRESS` constant in `frontend/public/index.html`, or
+   * put it into `.env` and inject into the frontend when building/serving.
+
+> **Note**: make sure the Solidity file is compatible with the Zama fhEVM compiler version you are using.
 
 ---
 
 ## Running the frontend
 
-Since the frontend is a static HTML SPA using WASM and `Cross-Origin-Opener-Policy`, you should serve it via a local HTTP server (not via `file://`).
+The frontend is static and can be served by any HTTP(S) server. Two options are common:
 
-From the project root:
+### 1. Minimal Express server (included)
+
+If `server.js` is present:
 
 ```bash
-cd frontend/public
-
-# Simple option: use serve (no config needed)
-npx serve .
-
-# or, if you prefer http-server
-# npx http-server .
+node server.js
 ```
 
-Then open the printed URL in your browser (e.g. [http://localhost:3000](http://localhost:3000) or [http://127.0.0.1:8080](http://127.0.0.1:8080)).
+Default configuration (can be overridden via `.env`):
 
-Requirements:
+* `PORT=3042`
+* `HOST=0.0.0.0`
+* Static root: `frontend/public/`
 
-* Browser with EIP‑1193 wallet (MetaMask, Rabby…) connected to **Sepolia**.
-* Zama FHEVM RPC configured in your wallet / Hardhat.
+The server automatically sets:
+
+```http
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+```
+
+These headers are required for Relayer SDK WASM/Workers.
+
+Open the app in your browser:
+
+```text
+http://localhost:3042/
+```
+
+### 2. Any other static host
+
+You can drop `index.html` into any HTTPS static host (Vercel, Netlify, S3+CloudFront, Nginx, …) as long as:
+
+* The **COOP/COEP** headers are set:
+
+  * `Cross-Origin-Opener-Policy: same-origin`
+  * `Cross-Origin-Embedder-Policy: require-corp`
+* The origin is allowed by the Zama Relayer (for public testnet this is usually fine).
 
 ---
 
-## How to use the dApp
+## Relayer integration details
+
+* SDK URL: `https://cdn.zama.org/relayer-sdk-js/0.3.0-5/relayer-sdk-js.js`
+
+* Network preset: `SepoliaConfig` (testnet)
+
+* Frontend uses **testnet relayer** by default:
+
+  ```js
+  const urls = {
+    relayerUrl: "https://relayer.testnet.zama.org",
+    gatewayUrl: "https://gateway.testnet.zama.org"
+  };
+  ```
+
+* If you run a **local proxy** (recommended for some environments):
+
+  * Set `relayerUrl = <origin>/relayer`, `gatewayUrl = <origin>/gateway`.
+  * Optionally configure this via env or a small helper function.
+
+### userDecrypt
+
+For `userDecrypt`, the frontend:
+
+1. Calls `generateKeypair()` in the browser.
+2. Builds an EIP‑712 message with `relayer.createEIP712(...)`.
+3. Signs it via `signer.signTypedData(...)` from the connected wallet.
+4. Sends the signature, ephemeral keys and the list of `{ handle, contractAddress }` pairs to `relayer.userDecrypt(...)`.
+5. Normalises the response with `buildValuePicker(...)` so the UI can do:
+
+```js
+const { pick } = await fheCore.userDecryptHandles(handles);
+const myHp = pick(hpHandle);
+const bossHp = pick(bossHpHandle);
+```
+
+All BigInt values are always converted with `normalizeDecryptedValue` (booleans mapped to `0n/1n`).
+
+---
+
+## Gameplay flow
 
 1. **Connect wallet**
 
-   * Click **“Connect wallet”** in the header.
-   * Approve network switch to Sepolia if prompted.
+   * Click **Connect wallet**.
+   * dApp connects MetaMask, auto‑switches to Sepolia if needed and initialises Relayer.
 
-2. **Register as a player**
+2. **Check boss status**
 
-   * In **“Player onboarding”** panel:
+   * Top‑right pill shows `Boss ready` / `Boss not configured`.
 
-     * Enter a public display name.
-     * Enter your age (0–255).
-     * Click **“Encrypt & register”**.
-   * Wait for the transaction to confirm.
+3. **Owner: configure boss (admin panel)**
 
-3. **Inspect your profile**
+   * Only contract owner sees the admin block:
 
-   * In **“My profile”** panel, click **“Load my profile”**.
-   * You will see:
+     * `Boss max HP`, `Defense`, `Attack` (all `uint16`).
+   * Press **Configure encrypted boss**.
+   * Frontend encrypts three values and sends them to `configureBoss`.
 
-     * Your name, and
-     * Your encrypted age handle (`bytes32`).
+4. **Player: join the fight**
 
-4. **Decrypt your age**
+   * Choose `Initial HP`.
+   * Press **Join fight**.
+   * HP stored encrypted on contract; frontend decrypts snapshot and shows HP bar.
 
-   * Click **“Private decrypt via Relayer”**.
-   * Sign the EIP‑712 message in your wallet.
-   * The decrypted age will appear as a pill in the UI, visible only in your browser.
+5. **Attack cycle**
 
-5. **Owner tools (optional)**
+   * Move **Attack power** slider.
+   * Pick spell: **Basic Strike** or **Power Strike**.
+   * Press **Attack boss**:
 
-   * If connected as `owner`:
+     * attack power + spell id are encrypted via Relayer;
+     * contract computes damage fully inside ciphertext;
+     * frontend calls `userDecrypt` to display:
 
-     * Use **“Make age public”** for a target address to enable public decryption.
-     * Use **“Clear profile”** to logically clear a user profile.
+       * updated player and boss HP,
+       * whether the last hit was successful.
+
+6. **End of fight**
+
+   * UI shows a **battle result banner**:
+
+     * Victory — boss HP reached zero.
+     * Defeat — player HP reached zero.
+     * Draw — both HP = 0.
+   * To start a new run, player hits **Join fight** again with a fresh initial HP.
 
 ---
 
+## Encrypted logs
 
+At the bottom of the page there is a small console which shows human‑friendly logs for each step:
+
+* `wallet: connecting…` / `wallet: connected.` / `wallet: disconnected.`
+* `enc/boss: max=5000 def=1200 atk=400`.
+* `enc/join: hp=5000`.
+* `enc/attack: power=800 spell=1`.
+* `tx/*: mined, refreshing encrypted state…`.
+* `snapshot: you=3800 boss=0 hit=success`.
+
+Errors from Relayer / RPC / userDecrypt are also surfaced in a compact form so debugging is easier.
+
+---
+
+## Known issues & troubleshooting
+
+### Zama testnet relayer 5xx / CORS errors
+
+You may sometimes see errors like:
+
+* `POST https://relayer.testnet.zama.org/v1/input-proof net::ERR_FAILED 504/520`
+* `No 'Access-Control-Allow-Origin' header is present on the requested resource`
+
+These are usually **infrastructure issues on the public testnet relayer** or temporary CORS misconfiguration on Zama’s side.
+
+What you can try:
+
+1. Make sure the frontend is served from a single origin with correct COOP/COEP headers.
+2. Retry later — when Zama’s infra is under maintenance, some endpoints may intermittently fail.
+3. For production, consider running your own Relayer instance or a trusted proxy, following Zama’s documentation.
+
+### MetaMask not found
+
+If `window.ethereum` is missing, the app shows `Wallet not connected` and buttons are disabled.
+Install MetaMask or another browser wallet which exposes EIP‑1193 provider.
+
+### HP not updating
+
+* Ensure the last transaction is mined (MetaMask shows it as confirmed).
+* Check DevTools console for `userDecrypt` errors.
+* If relayer responds but values look wrong, try **hard refresh** (clears in‑memory state) and re‑join the fight.
+
+---
+
+## Security / privacy notes
+
+* This is a **testnet demo** to showcase Zama fhEVM capabilities — **not** production‑grade code.
+* Encrypted values are handled carefully, but:
+
+  * contract logic has not been formally audited;
+  * DoS, griefing or economic attacks were not a focus.
+* Never store or send secrets other than gameplay stats through this demo.
+
+---
+
+## Development tips
+
+* Keep an eye on both:
+
+  * Browser DevTools console (for frontend logs and Relayer errors).
+  * Hardhat node / RPC logs (for contract calls and reverts).
+* When changing contract ABI or address, make sure to update:
+
+  * `CONTRACT_ADDRESS` in `index.html` (or environment),
+  * `CONTRACT_ABI` array used by the frontend.
+* If you fork this UI for other fhEVM games, you can:
+
+  * reuse the minimal `fheCore` wrapper;
+  * keep the HP bars / battle result components;
+  * plug in your own encrypted contract calls and decryption logic.
 
 ---
 
 ## License
 
-MIT — feel free to fork, adapt and extend for your own Zama FHEVM demos.
+Specify a license for this project, for example:
+
+```text
+MIT
+```
+
+If you don’t include a license, the project is "all rights reserved" by default.

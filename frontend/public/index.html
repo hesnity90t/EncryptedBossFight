@@ -1,343 +1,1896 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>ZAMA • FHEVM — Partner Tariff Gate</title>
+  <meta charset="UTF-8" />
+  <title>Encrypted Boss Fight</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="color-scheme" content="dark" />
+
+  <!-- Required for Relayer SDK (WASM/Workers) -->
   <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin" />
   <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp" />
+
   <style>
-    :root{ --bg:#0b0f1a; --bg2:#090e18; --ink:#eaf1ff; --muted:#b6c4e3; --card:#0f1728; --br:#1a2540; --glow:rgba(56,189,248,.18); --accent:#2f66ff; --accent-2:#2553e6; --ok:#7ef29a; --bad:#ff8b8b; }
-    *{box-sizing:border-box} html,body{height:100%}
-    body{ margin:0; color:var(--ink);
-      background: radial-gradient(60% 40% at 50% -10%, #0f1a33 0%, transparent 70%), linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
-      font:15px/1.55 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial;}
-    .wrap{max-width:1180px; margin:30px auto; padding:0 18px; display:grid; gap:18px; grid-template-columns: 1.1fr .9fr}
-    .spacer{flex:1} .pill{padding:6px 10px; border:1px solid var(--br); border-radius:10px; background:linear-gradient(to bottom, rgba(255,255,255,.03), transparent 30%), linear-gradient(150deg, #182033, #060a16); color:#cfe0ff; font-weight:800; white-space:nowrap}
-    .title{font-size:22px; font-weight:900}
-    .card{border:1px solid var(--br); border-radius:16px; background:radial-gradient(circle at top center, var(--glow) 0, rgba(15,23,42,.96) 36%, #020617 70%); box-shadow:0 1px 0 rgba(15,23,42,.9), 0 28px 60px rgba(0,0,0,.8), 0 0 36px var(--glow);}    
-    .card .hd{padding:14px 16px; border-bottom:1px solid var(--br); display:flex; align-items:center; gap:10px}
-    .card .bd{padding:14px 16px;}
-    .grid{display:grid; gap:12px} .grid.cols-2{grid-template-columns:1fr 1fr}
-    label{font-size:12px; color:#9db1e8; text-transform:uppercase; letter-spacing:.06em; font-weight:800; display:block; margin-bottom:6px}
-    input{width:100%; padding:12px; border-radius:12px; border:1px solid var(--br); background:#0b1220; color:var(--ink); font-weight:800; outline:none}
-    .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:42px; padding:10px 14px; border-radius:12px; border:1px solid rgba(31,41,55,.9); color:var(--ink); font-weight:900; cursor:pointer; background:linear-gradient(to bottom, rgba(255,255,255,.06), transparent 32%), linear-gradient(145deg, #1f2933, #020617); box-shadow:0 0 0 1px rgba(15,23,42,.9), 0 14px 30px rgba(0,0,0,.7), 0 0 26px var(--glow);}    
-    .btn:hover{transform:translateY(-1px); box-shadow:0 0 0 1px rgba(15,23,42,1), 0 18px 40px rgba(0,0,0,.85), 0 0 30px rgba(56,189,248,.35)}
-    .btn[disabled]{opacity:.55; cursor:not-allowed} .btn.primary{background:linear-gradient(180deg, var(--accent) 0%, var(--accent-2) 100%); box-shadow:0 14px 40px rgba(47,102,255,.28), inset 0 0 0 1px rgba(255,255,255,.05)}
-    .kv{display:grid; grid-template-columns:140px 1fr; gap:8px; align-items:center}
-    .mono{font-family:ui-monospace, Menlo, Consolas, 'Courier New', monospace} .muted{color:var(--muted)} .ok{color:var(--ok)} .bad{color:var(--bad)}
-    .sep{height:1px; background:var(--br); margin:8px 0} .footer{grid-column:1/-1; text-align:center; color:#9db1e8; opacity:.85; padding:8px}
-    .row-actions{display:flex; gap:10px; flex-wrap:wrap}
-    .result-box{padding:10px 12px; border:1px solid var(--br); border-radius:12px; background:linear-gradient(to bottom, rgba(255,255,255,.03), transparent 32%), linear-gradient(145deg, #132035, #020617);}    
-    .tag{display:inline-block; padding:2px 8px; border-radius:10px; border:1px solid var(--br); background:#0b1424; color:#cfe0ff; font-size:12px; font-weight:800}
-    .row-split{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center} .small{font-size:12px}
+    :root {
+      --bg-1: #020617;
+      --accent-1: #a855f7;
+      --accent-2: #38bdf8;
+      --accent-3: #f97316;
+      --danger: #f97373;
+      --success: #4ade80;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --card-bg: rgba(15, 23, 42, 0.96);
+      --card-bg-soft: rgba(15, 23, 42, 0.7);
+      --shadow-strong: 0 0 40px rgba(15, 23, 42, 0.9), 0 0 70px rgba(88, 28, 135, 0.5);
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-pill: 999px;
+      --transition-fast: 150ms ease-out;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      color: var(--text-main);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(147, 51, 234, 0.14) 0, transparent 55%),
+        radial-gradient(circle at 90% 100%, rgba(59, 130, 246, 0.16) 0, transparent 55%),
+        radial-gradient(circle at 50% 40%, rgba(15, 23, 42, 1) 0, #020617 60%);
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1120px;
+      position: relative;
+    }
+
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 40px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(15, 23, 42, 0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 23, 42, 0.35) 1px, transparent 1px);
+      background-size: 26px 26px;
+      opacity: 0.4;
+      mix-blend-mode: soft-light;
+      pointer-events: none;
+      border-radius: 40px;
+      mask-image: radial-gradient(circle at 50% 50%, black 0, transparent 72%);
+    }
+
+    .app-card {
+      position: relative;
+      z-index: 1;
+      padding: 26px 26px 22px;
+      border-radius: 32px;
+      background:
+        radial-gradient(circle at 0 0, rgba(168, 85, 247, 0.18), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(34, 211, 238, 0.16), transparent 55%),
+        var(--card-bg);
+      box-shadow: var(--shadow-strong);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 4px;
+    }
+
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .app-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-logo-orb {
+      width: 26px;
+      height: 26px;
+      border-radius: 40%;
+      background: conic-gradient(
+        from 210deg,
+        #a855f7,
+        #ec4899,
+        #22c55e,
+        #38bdf8,
+        #f97316,
+        #a855f7
+      );
+      box-shadow: 0 0 14px rgba(147, 51, 234, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #020617;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .app-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .app-title span.sub {
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.18em;
+    }
+
+    .app-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .right-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      border-radius: var(--radius-pill);
+      padding: 4px 10px;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: linear-gradient(to right, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.6));
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent-1);
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.9);
+    }
+
+    .pill-owner {
+      border-color: rgba(250, 204, 21, 0.7);
+      background: radial-gradient(circle at 0 0, rgba(250, 204, 21, 0.18), rgba(15, 23, 42, 0.95));
+      color: #facc15;
+    }
+    .pill-owner .pill-dot {
+      background: #facc15;
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.9);
+    }
+
+    .pill-boss-ready {
+      border-color: rgba(129, 140, 248, 0.9);
+      background: radial-gradient(circle at 0 0, rgba(129, 140, 248, 0.2), rgba(15, 23, 42, 0.95));
+      color: #a5b4fc;
+    }
+
+    .pill-boss-waiting {
+      border-color: rgba(248, 113, 22, 0.8);
+      background: radial-gradient(circle at 0 0, rgba(248, 113, 22, 0.18), rgba(15, 23, 42, 0.95));
+      color: #fdba74;
+    }
+
+    .btn {
+      border-radius: var(--radius-pill);
+      padding: 7px 18px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: linear-gradient(to right, #0f172a, #020617);
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast), opacity 120ms ease-out;
+    }
+    .btn-primary {
+      background-image: linear-gradient(135deg, #a855f7, #ec4899, #38bdf8);
+      border-color: rgba(196, 181, 253, 0.9);
+      color: #020617;
+      box-shadow: 0 0 18px rgba(147, 51, 234, 0.9);
+    }
+    .btn-ghost {
+      background-image: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.8));
+    }
+    .btn:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
+
+    .layout-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.1fr);
+      gap: 18px;
+      margin-top: 4px;
+    }
+    @media (max-width: 900px) {
+      .layout-main { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .panel {
+      background: var(--card-bg-soft);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 16px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-tag {
+      font-size: 11px;
+      color: var(--text-muted);
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 2px 8px;
+    }
+
+    .panel-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .hp-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .label-row strong {
+      font-size: 13px;
+      color: var(--text-main);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .hp-bar-shell {
+      position: relative;
+      height: 16px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: radial-gradient(circle at 0 0, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(55, 65, 81, 0.7);
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9);
+    }
+
+    .hp-bar-fill {
+      position: absolute;
+      inset: 0;
+      transform-origin: left center;
+      background-image: linear-gradient(90deg, #4ade80, #22c55e, #facc15, #fb923c, #f97373);
+      box-shadow: 0 0 14px rgba(74, 222, 128, 0.9);
+      transition: transform 260ms ease-out, box-shadow 260ms ease-out;
+      transform: scaleX(0);
+    }
+
+    .hp-bar-shell[data-low="1"] .hp-bar-fill {
+      box-shadow: 0 0 14px rgba(248, 113, 22, 0.95);
+    }
+
+    .hp-value {
+      margin-top: 2px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .flex-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .field-label {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .field-number {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.55);
+      background: rgba(15, 23, 42, 0.96);
+      color: var(--text-main);
+      font-size: 13px;
+      padding: 6px 12px;
+      outline: none;
+      width: 100%;
+      -moz-appearance: textfield;
+    }
+
+    .field-number::-webkit-outer-spin-button,
+    .field-number::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+
+    .field-slider { width: 100%; }
+    input[type="range"].field-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.5), rgba(15, 23, 42, 0.9));
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].field-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px; border-radius: 999px;
+      background: #38bdf8; border: 2px solid #0b1120;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.9);
+      margin-top: -5px;
+    }
+
+    .spells-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .spell-chip {
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-size: 11px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      background: radial-gradient(circle at 0 0, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.85));
+      transition: 150ms;
+    }
+    .spell-chip input { display:none; }
+    .spell-chip[data-selected="true"] {
+      border-color: rgba(129, 140, 248, 0.95);
+      color: var(--text-main);
+      background: radial-gradient(circle at 0 0, rgba(129, 140, 248, 0.35), rgba(15, 23, 42, 0.98));
+      box-shadow: 0 0 16px rgba(129, 140, 248, 0.8);
+      transform: translateY(-1px);
+    }
+
+    .panel-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .status-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.7);
+    }
+    .status-dot.live {
+      background: #4ade80;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+    }
+
+    .boss-portrait {
+      position: relative;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      min-height: 120px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(248, 113, 22, 0.35), transparent 55%),
+        radial-gradient(circle at 10% 100%, rgba(59, 130, 246, 0.35), transparent 55%),
+        radial-gradient(circle at 100% 60%, rgba(24, 24, 27, 0.9), #020617);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .boss-silhouette {
+      width: 120px; height: 120px; border-radius: 999px;
+      border: 2px solid rgba(248, 250, 252, 0.1);
+      box-shadow:
+        0 0 40px rgba(248, 113, 22, 0.7),
+        0 0 90px rgba(0, 0, 0, 0.95);
+      position: relative; overflow:hidden;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(248, 250, 252, 0.35), transparent 55%),
+        radial-gradient(circle at 65% 80%, rgba(15, 23, 42, 0.95), #020617);
+    }
+    .boss-silhouette::before,
+    .boss-silhouette::after {
+      content:""; position:absolute; border-radius:999px; background:rgba(15,23,42,0.96);
+    }
+    .boss-silhouette::before {
+      width:140%; height:70%; bottom:-10%; left:-20%;
+      border-radius:100% 100% 80% 80%;
+      box-shadow: inset 0 20px 40px rgba(0, 0, 0, 0.85);
+    }
+    .boss-silhouette::after {
+      width:70%; height:70%; top:-10%; left:15%;
+      border-radius:90% 90% 65% 65%;
+      box-shadow: inset 0 -20px 40px rgba(0, 0, 0, 0.95);
+    }
+    .boss-eyes {
+      position:absolute; top:46%; left:50%;
+      transform:translateX(-50%); display:flex; gap:16px;
+    }
+    .boss-eye {
+      width:14px; height:9px; border-radius:999px;
+      background: radial-gradient(circle at 50% 30%, #fee2e2, #f97316);
+      box-shadow:0 0 14px rgba(248, 113, 22, 0.9);
+    }
+    .boss-meta {
+      position:absolute;
+      inset:auto 12px 10px 12px;
+      display:flex; align-items:center; justify-content:space-between;
+      font-size:11px; color:rgba(248,250,252,0.8);
+      text-shadow:0 1px 3px rgba(15,23,42,0.9);
+    }
+
+    .result-chip {
+      border-radius: var(--radius-pill);
+      padding: 4px 10px;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: radial-gradient(circle at 0 0, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.85));
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .result-chip[data-state="success"] {
+      border-color: rgba(74, 222, 128, 0.9);
+      background: radial-gradient(circle at 0 0, rgba(22, 163, 74, 0.2), rgba(15, 23, 42, 0.96));
+      color: var(--success);
+    }
+    .result-chip[data-state="blocked"] {
+      border-color: rgba(248, 113, 22, 0.9);
+      background: radial-gradient(circle at 0 0, rgba(248, 113, 22, 0.2), rgba(15, 23, 42, 0.96));
+      color: #fdba74;
+    }
+    .result-chip[data-state="none"] { opacity:0.6; }
+
+    .battle-result {
+      margin-top: 10px;
+      margin-bottom: 2px;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: radial-gradient(circle at 0 0, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.9));
+    }
+    .battle-result-left {
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .battle-result-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(148,163,184,0.9);
+      box-shadow: 0 0 0 rgba(0,0,0,0);
+    }
+    .battle-result-title {
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .battle-result-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .battle-result[data-state="none"] .battle-result-title {
+      color: var(--text-muted);
+    }
+    .battle-result[data-state="ongoing"] .battle-result-dot {
+      background: #60a5fa;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.9);
+    }
+    .battle-result[data-state="victory"] {
+      border-color: rgba(74, 222, 128, 0.9);
+      background: radial-gradient(circle at 0 0, rgba(34, 197, 94, 0.2), rgba(15, 23, 42, 0.98));
+    }
+    .battle-result[data-state="victory"] .battle-result-dot {
+      background: #4ade80;
+      box-shadow: 0 0 14px rgba(34, 197, 94, 0.95);
+    }
+    .battle-result[data-state="victory"] .battle-result-title {
+      color: var(--success);
+    }
+    .battle-result[data-state="defeat"] {
+      border-color: rgba(248, 113, 113, 0.9);
+      background: radial-gradient(circle at 0 0, rgba(248, 113, 113, 0.2), rgba(15, 23, 42, 0.98));
+    }
+    .battle-result[data-state="defeat"] .battle-result-dot {
+      background: #f97373;
+      box-shadow: 0 0 14px rgba(248, 113, 113, 0.95);
+    }
+    .battle-result[data-state="defeat"] .battle-result-title {
+      color: #fecaca;
+    }
+    .battle-result[data-state="draw"] {
+      border-color: rgba(129, 140, 248, 0.9);
+      background: radial-gradient(circle at 0 0, rgba(129, 140, 248, 0.22), rgba(15, 23, 42, 0.98));
+    }
+    .battle-result[data-state="draw"] .battle-result-dot {
+      background: #a5b4fc;
+      box-shadow: 0 0 14px rgba(129, 140, 248, 0.95);
+    }
+    .battle-result[data-state="draw"] .battle-result-title {
+      color: #e5e7eb;
+    }
+
+    .console {
+      margin-top: 6px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(to right, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.96));
+      border: 1px solid rgba(55, 65, 194, 0.7);
+      font-size: 11px;
+      color: var(--text-muted);
+      max-height: 130px;
+      overflow: auto;
+    }
+    .console-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(148, 163, 184, 0.9);
+      margin-bottom: 4px;
+    }
+    .console-line span.prefix { color:rgba(129,140,248,0.9); }
+    .console-line span.error { color:var(--danger); }
+    .console-line span.ok { color:var(--success); }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <section class="card">
-      <div class="hd">
-        <div class="title">Partner Tariff Gate</div>
-        <span class="pill">ZAMA · FHEVM</span>
-        <span class="spacer"></span>
-        <span class="pill" id="net-pill">Network: —</span>
-        <button class="btn" id="btn-connect">Connect</button>
-      </div>
-      <div class="bd grid">
-        <div class="card">
-          <div class="hd"><b>Eligibility · Encrypted user input</b></div>
-          <div class="bd grid">
-            <div class="result-box" id="decisionBox">Decision: <span class="tag">n/a</span></div>
-
-            <div class="grid cols-2">
-              <div><label>Plan ID</label><input id="planId" type="number" min="1" value="1" /></div>
-              <div></div>
-              <div><label>KYC level (u8)</label><input id="kyc" type="number" min="0" max="255" value="3" /></div>
-              <div><label>Tenure days (u16)</label><input id="tenure" type="number" min="0" max="65535" value="45" /></div>
-              <div><label>Trade volume (u32)</label><input id="volume" type="number" min="0" max="4294967295" value="1500" /></div>
-              <div style="display:flex;align-items:flex-end;justify-content:flex-end">
-                <button class="btn primary" id="btn-eval">Encrypt &amp; Evaluate</button>
-              </div>
+  <div class="shell">
+    <div class="grid-overlay"></div>
+    <div class="app-card">
+      <header class="app-header">
+        <div class="title-block">
+          <div class="app-title-row">
+            <div class="app-logo-orb">Z</div>
+            <div class="app-title">
+              <span>Encrypted&nbsp;Boss&nbsp;Fight</span>
+              <span class="sub">fhEVM raid</span>
             </div>
-
-            <div>
-              <label>Handle</label>
-              <div class="row-split">
-                <input id="handleOut" class="mono small" readonly placeholder="—" />
-                <button class="btn" id="btn-copy">Copy</button>
-              </div>
-            </div>
-
-            <div class="row-actions">
-              <button class="btn" id="btn-make-public">Make my decision public</button>
-              <button class="btn" id="btn-public-decrypt">Decrypt (public)</button>
-              <button class="btn" id="btn-user-decrypt">Decrypt (signed)</button>
-            </div>
+          </div>
+          <div class="app-subtitle">
+            Both your HP and the boss HP live in ciphertext. This page only decrypts what your wallet is allowed to see.
           </div>
         </div>
 
-        <div class="card">
-          <div class="hd"><b>Admin · Set encrypted policy</b> <span class="pill" id="isOwnerPill" style="margin-left:8px">owner: —</span></div>
-          <div class="bd grid cols-2">
-            <div><label>Plan ID</label><input id="p-plan" type="number" min="1" value="1" /></div>
-            <div><label>minKycLevel (u8)</label><input id="p-kyc" type="number" min="0" max="255" value="2" /></div>
-            <div><label>minTenureDays (u16)</label><input id="p-tenure" type="number" min="0" max="65535" value="30" /></div>
-            <div><label>minTradeVolumeUsd (u32)</label><input id="p-volume" type="number" min="0" max="4294967295" value="1000" /></div>
-            <div><label>minPassRules (u8)</label><input id="p-pass" type="number" min="1" max="3" value="2" /></div>
-            <div style="display:flex;align-items:flex-end"><button class="btn" id="btn-set-policy">Set encrypted policy</button></div>
+        <div class="right-header">
+          <div id="boss-status-pill" class="pill pill-boss-waiting">
+            <div class="pill-dot"></div>
+            <span id="boss-status-text">Boss not configured</span>
+          </div>
+
+          <div id="owner-pill" class="pill pill-owner" style="display:none;">
+            <div class="pill-dot"></div>
+            <span>Owner</span>
+          </div>
+
+          <button id="connect-btn" class="btn btn-primary">
+            <span class="icon">🦊</span>
+            <span id="connect-label">Connect wallet</span>
+          </button>
+
+          <div id="account-pill" class="pill" style="display:none;">
+            <span class="pill-dot"></span>
+            <span id="account-label">—</span>
           </div>
         </div>
-      </div>
-    </section>
+      </header>
 
-    <aside class="card">
-      <div class="hd"><b>Contract</b></div>
-      <div class="bd grid">
-        <div class="kv"><div class="muted">Address:</div><div class="mono" id="caddr">—</div></div>
-        <div class="kv"><div class="muted">Owner:</div><div class="mono" id="cowner">—</div></div>
-        <div class="kv"><div class="muted">Relayer:</div><div id="relayerState">not ready</div></div>
-        <div class="sep"></div>
-        <div class="kv"><div class="muted">Your account:</div><div class="mono" id="acc">—</div></div>
-        <div class="kv"><div class="muted">Eligibility handle:</div><div class="mono" id="lastHandle">—</div></div>
-      </div>
-    </aside>
+      <main class="layout-main">
+        <!-- LEFT: player -->
+        <section class="panel" id="player-panel" data-joined="0">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>Player</span>
+              <span>⚔️</span>
+            </div>
+            <div class="panel-tag">You decrypt your own state</div>
+          </div>
 
-    <div class="footer">ZAMA FHEVM · Partner Tariff Gate — Single-file demo (Sepolia)</div>
+          <div class="panel-body">
+            <div class="hp-block">
+              <div class="label-row">
+                <strong>Your HP</strong>
+                <span id="hp-label-small">join the fight to reveal</span>
+              </div>
+              <div id="hp-bar-shell" class="hp-bar-shell" data-low="0">
+                <div id="hp-bar-fill" class="hp-bar-fill"></div>
+              </div>
+              <div id="hp-value" class="hp-value">HP: —</div>
+            </div>
+
+            <div class="flex-row">
+              <div class="field-group">
+                <label for="join-hp-input" class="field-label">
+                  <span>Initial HP</span>
+                  <span class="right">0 – 65535</span>
+                </label>
+                <input
+                  id="join-hp-input"
+                  type="number"
+                  class="field-number"
+                  min="0"
+                  max="65535"
+                  value="5000"
+                />
+              </div>
+
+              <button id="join-btn" class="btn btn-ghost" style="margin-top: 18px;">
+                <span class="icon">🎮</span>
+                <span>Join fight</span>
+              </button>
+            </div>
+
+            <hr style="border:none; border-top:1px dashed rgba(55,65,81,0.7); margin:4px 0 2px;" />
+
+            <div class="field-group">
+              <label for="attack-power-input" class="field-label">
+                <span>Attack power</span>
+                <span class="right"><span id="attack-power-label">800</span></span>
+              </label>
+              <input id="attack-power-input" type="range" class="field-slider" min="0" max="5000" value="800" />
+            </div>
+
+            <div class="field-group">
+              <div class="field-label">
+                <span>Spell</span>
+                <span class="right">encrypted spell id</span>
+              </div>
+              <div class="spells-row">
+                <label class="spell-chip" data-selected="true" id="spell-basic-chip">
+                  <input type="radio" name="spell" value="0" checked />
+                  <span>🗡️</span>
+                  <div>
+                    <strong>Basic Strike</strong><br />
+                    <small>plain damage</small>
+                  </div>
+                </label>
+                <label class="spell-chip" data-selected="false" id="spell-power-chip">
+                  <input type="radio" name="spell" value="1" />
+                  <span>💥</span>
+                  <div>
+                    <strong>Power Strike</strong><br />
+                    <small>+50% damage</small>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-footer">
+            <div class="status-label">
+              <span id="player-status-dot" class="status-dot"></span>
+              <span id="player-status-text">Wallet not connected</span>
+            </div>
+            <div class="flex-row" style="gap:10px;">
+              <div id="last-hit-chip" class="result-chip" data-state="none">
+                <span class="result-dot"></span>
+                <span id="last-hit-text">No attacks yet</span>
+              </div>
+              <button id="attack-btn" class="btn btn-primary" disabled>
+                <span class="icon">⚔️</span>
+                <span>Attack boss</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT: boss -->
+        <section class="panel" id="boss-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>Encrypted Boss</span>
+              <span>🐉</span>
+            </div>
+            <div class="panel-tag">Stats stay encrypted on-chain</div>
+          </div>
+
+          <div class="panel-body">
+            <div class="boss-portrait">
+              <div class="boss-silhouette">
+                <div class="boss-eyes">
+                  <div class="boss-eye"></div>
+                  <div class="boss-eye"></div>
+                </div>
+              </div>
+              <div class="boss-meta">
+                <div>
+                  <span class="label">status</span><br />
+                  <span id="boss-meta-status" class="value">unknown</span>
+                </div>
+                <div style="text-align:right;">
+                  <span class="label">hp</span><br />
+                  <span class="value">encrypted</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="hp-block" style="margin-top:10px;">
+              <div class="label-row">
+                <strong>Boss HP</strong>
+                <span id="boss-hp-label-small">join to decrypt</span>
+              </div>
+              <div id="boss-hp-bar-shell" class="hp-bar-shell" data-low="0">
+                <div id="boss-hp-bar-fill" class="hp-bar-fill"></div>
+              </div>
+              <div id="boss-hp-value" class="hp-value">HP: —</div>
+            </div>
+
+            <div class="field-group" id="owner-config-block" style="margin-top: 4px; display:none;">
+              <div class="field-label">
+                <span>Owner controls</span>
+                <span class="right">configure encrypted boss</span>
+              </div>
+              <div class="flex-row" style="margin-bottom: 6px;">
+                <div class="field-group">
+                  <label class="field-label">
+                    <span>Boss max HP</span><span class="right">uint16</span>
+                  </label>
+                  <input id="boss-hp-input" type="number" class="field-number" min="0" max="65535" value="5000" />
+                </div>
+                <div class="field-group">
+                  <label class="field-label">
+                    <span>Defense</span><span class="right">uint16</span>
+                  </label>
+                  <input id="boss-def-input" type="number" class="field-number" min="0" max="65535" value="1200" />
+                </div>
+                <div class="field-group">
+                  <label class="field-label">
+                    <span>Attack</span><span class="right">uint16</span>
+                  </label>
+                  <input id="boss-atk-input" type="number" class="field-number" min="0" max="65535" value="400" />
+                </div>
+              </div>
+              <button id="boss-config-btn" class="btn btn-ghost" style="align-self:flex-start;">
+                <span class="icon">🧪</span>
+                <span>Configure encrypted boss</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-footer">
+            <div class="status-label">
+              <span id="boss-status-dot-small" class="status-dot"></span>
+              <span id="boss-status-caption">Waiting for boss configuration…</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); text-align: right;">
+              Contract: <span id="contract-address-label"></span>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Battle result banner -->
+      <section id="battle-result" class="battle-result" data-state="none">
+        <div class="battle-result-left">
+          <div class="battle-result-dot"></div>
+          <div>
+            <div id="battle-result-title" class="battle-result-title">No result yet</div>
+            <div id="battle-result-desc" class="battle-result-desc">
+              Join the fight and attack the boss to see who wins.
+            </div>
+          </div>
+        </div>
+        <div id="battle-result-meta" class="battle-result-desc">
+          Your HP: — · Boss HP: —
+        </div>
+      </section>
+
+      <section class="console">
+        <div class="console-title">Encrypted logs</div>
+        <div id="console-body">
+          <div class="console-line">
+            <span class="prefix">[init]</span>
+            <span> UI loaded. Connect your wallet to start the encrypted raid.</span>
+          </div>
+        </div>
+      </section>
+    </div>
   </div>
 
   <script type="module">
-    // ===== Net & endpoints =====
-    const CONTRACT_ADDRESS = '0x7F658EDaddFC0dfb8a68021dD8855d1B34a36CC3';
-    const CHAIN_ID_HEX = '0xaa36a7';
+    import { BrowserProvider, Contract } from "https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm";
+    import {
+      initSDK,
+      createInstance,
+      SepoliaConfig,
+      generateKeypair
+    } from "https://cdn.zama.org/relayer-sdk-js/0.3.0-5/relayer-sdk-js.js";
 
-    // Try to use local reverse-proxy if available, else direct Zama endpoints
-    const ORIGIN = window.location.origin;
-    const HAS_LOCAL_PROXY = ORIGIN.includes('localhost:3443') || ORIGIN.includes('127.0.0.1:3443');
-    const RELAYER_URL = HAS_LOCAL_PROXY ? `${ORIGIN}/relayer` : 'https://relayer.testnet.zama.org';
-    const GATEWAY_URL = HAS_LOCAL_PROXY ? `${ORIGIN}/gateway` : 'https://gateway.testnet.zama.org';
-
-    const $ = (q)=>document.querySelector(q);
-    const btnConnect=$('#btn-connect'), netPill=$('#net-pill'), isOwnerPill=$('#isOwnerPill');
-    const caddrEl=$('#caddr'), cownerEl=$('#cowner'), accEl=$('#acc'), relayerStateEl=$('#relayerState');
-    const planIdEl=$('#planId'), kycEl=$('#kyc'), tenureEl=$('#tenure'), volumeEl=$('#volume'), btnEval=$('#btn-eval');
-    const decisionBox=$('#decisionBox'), handleOut=$('#handleOut'), btnCopy=$('#btn-copy');
-    const btnMakePublic=$('#btn-make-public'), btnPublicDecrypt=$('#btn-public-decrypt'), btnUserDecrypt=$('#btn-user-decrypt');
-    const pPlanEl=$('#p-plan'), pKycEl=$('#p-kyc'), pTenureEl=$('#p-tenure'), pVolEl=$('#p-volume'), pPassEl=$('#p-pass'), btnSetPolicy=$('#btn-set-policy');
-    const lastHandleEl=$('#lastHandle');
-
-    const [{ BrowserProvider, Contract }, relayerSdk] = await Promise.all([
-      import('https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm'),
-      import('https://cdn.zama.org/relayer-sdk-js/0.3.0-5/relayer-sdk-js.js')
-    ]);
-    const { initSDK, createInstance, SepoliaConfig, generateKeypair } = relayerSdk;
     await initSDK();
 
-    const IS_HTTPS = location.protocol === 'https:';
-    if(!IS_HTTPS){ relayerStateEl.innerHTML = '<span class="bad">not https (signed decrypt disabled)</span>'; btnUserDecrypt.disabled = true; }
+    // === CONFIG ===
+    const CONTRACT_ADDRESS = "0x178A18a5e0C6E5D0d0Ae5c337Cc00b3Dde327a05";
+    const DEFAULT_CHAIN_ID_HEX = "0xaa36a7";
 
-    const ABI = [
-      { inputs:[], stateMutability:'view', type:'function', name:'owner', outputs:[{type:'address'}] },
-      { inputs:[{name:'planId',type:'uint256'}], stateMutability:'view', type:'function', name:'hasPolicy', outputs:[{type:'bool'}] },
-      { inputs:[{name:'planId',type:'uint256'},{name:'kycLevelExt',type:'bytes32'},{name:'tenureDaysExt',type:'bytes32'},{name:'volumeUsdExt',type:'bytes32'},{name:'proof',type:'bytes'}], name:'evaluateEligibilityEncrypted', outputs:[{type:'bytes32'}], stateMutability:'nonpayable', type:'function' },
-      { inputs:[{name:'planId',type:'uint256'},{name:'minKycLevelExt',type:'bytes32'},{name:'minTenureDaysExt',type:'bytes32'},{name:'minTradeVolumeUsdExt',type:'bytes32'},{name:'minPassRulesExt',type:'bytes32'},{name:'proof',type:'bytes'}], name:'setPolicyEncrypted', outputs:[], stateMutability:'nonpayable', type:'function' },
-      { inputs:[{name:'planId',type:'uint256'}], name:'getMyEligibilityHandle', outputs:[{type:'bytes32'}], stateMutability:'view', type:'function' },
-      { inputs:[{name:'planId',type:'uint256'}], name:'makeMyEligibilityPublic', outputs:[], stateMutability:'nonpayable', type:'function' }
+    const CONFIG = {
+      contractAddress: CONTRACT_ADDRESS,
+      abi: null,
+      chainIdHex: DEFAULT_CHAIN_ID_HEX,
+      relayerUrl: null,
+      gatewayUrl: null,
+      relayerNetworkConfig: SepoliaConfig
+    };
+
+    const STATE = {
+      provider: null,
+      signer: null,
+      contract: null,
+      relayer: null,
+      account: null,
+      owner: null
+    };
+
+    const safeStringify = (obj) =>
+      JSON.stringify(
+        obj,
+        (k, v) => (typeof v === "bigint" ? v.toString() + "n" : v),
+        2
+      );
+
+    function coreLog(...parts) {
+      const msg = parts
+        .map((x) =>
+          typeof x === "string"
+            ? x
+            : (() => {
+                try { return safeStringify(x); } catch { return String(x); }
+              })()
+        )
+        .join(" ");
+      console.log("[ZamaFheCore]", msg);
+    }
+
+    function shortAddress(addr) {
+      if (!addr) return "—";
+      return addr.slice(0, 6) + "…" + addr.slice(-4);
+    }
+
+    function normalizeChainId(id) {
+      if (!id) return "";
+      const s = String(id);
+      if (/^\d+$/.test(s)) return "0x" + BigInt(s).toString(16);
+      return s.toLowerCase();
+    }
+
+    function normalizeDecryptedValue(v) {
+      if (v == null) return null;
+      if (typeof v === "boolean") return v ? 1n : 0n;
+      if (typeof v === "bigint" || typeof v === "number") return BigInt(v);
+      if (typeof v === "string") return BigInt(v);
+      return BigInt(v.toString());
+    }
+
+    async function ensureNetwork(chainIdHex) {
+      if (!window.ethereum?.request) return false;
+      let current = normalizeChainId(
+        await window.ethereum.request({ method: "eth_chainId" }).catch(() => null)
+      );
+      if (current === chainIdHex) return true;
+
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: chainIdHex }]
+        });
+      } catch (e) {
+        if (e && e.code === 4902) {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: chainIdHex,
+                chainName: "Sepolia",
+                nativeCurrency: { name: "Sepolia ETH", symbol: "SEP", decimals: 18 },
+                rpcUrls: ["https://rpc.sepolia.org"],
+                blockExplorerUrls: ["https://sepolia.etherscan.io"]
+              }
+            ]
+          });
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: chainIdHex }]
+          });
+        } else {
+          throw e;
+        }
+      }
+      const after = normalizeChainId(
+        await window.ethereum.request({ method: "eth_chainId" }).catch(() => null)
+      );
+      return after === chainIdHex;
+    }
+
+    // detectRelayerUrls — КАК В ПЕРВОЙ ВЕРСИИ ФРОНТА
+   function detectRelayerUrls() {
+      const origin = window.location.origin;
+      const hasLocalProxy =
+        origin.includes("localhost:3443") || origin.includes("127.0.0.1:3443");
+
+      if (hasLocalProxy) {
+        return {
+          relayerUrl: `${origin}/relayer`,
+          gatewayUrl: `${origin}/gateway`
+        };
+      }
+
+      return {
+        relayerUrl: "https://relayer.testnet.zama.org",
+        gatewayUrl: "https://gateway.testnet.zama.org"
+      };
+    }
+
+    function buildValuePicker(out, pairs) {
+      let map = {};
+      if (out && typeof out === "object") {
+        if (Array.isArray(out.clearValues) && pairs && pairs.length) {
+          pairs.forEach((p, i) => {
+            const h = String(p.handle || p).toLowerCase();
+            map[h] = out.clearValues[i];
+          });
+        }
+        if (!Object.keys(map).length && typeof out.abiEncodedClearValues === "string") {
+          const raw = out.abiEncodedClearValues.startsWith("0x")
+            ? out.abiEncodedClearValues.slice(2)
+            : out.abiEncodedClearValues;
+          const values = [];
+          for (let i = 0; i + 64 <= raw.length; i += 64) {
+            const chunk = "0x" + raw.slice(i, i + 64);
+            try { values.push(BigInt(chunk)); } catch { values.push(0n); }
+          }
+          pairs?.forEach((p, i) => {
+            const h = String(p.handle || p).toLowerCase();
+            if (values[i] !== undefined) map[h] = values[i];
+          });
+        }
+        if (!Object.keys(map).length) {
+          for (const [k, v] of Object.entries(out)) {
+            map[k.toLowerCase()] = v;
+          }
+        }
+      }
+      return (handle) => {
+        if (!handle) return null;
+        const k = String(handle).toLowerCase();
+        const v = map[k];
+        if (v === undefined) return null;
+        return normalizeDecryptedValue(v);
+      };
+    }
+
+    async function userDecryptMany(pairs) {
+      if (!STATE.relayer || !STATE.signer || !CONFIG.contractAddress) {
+        throw new Error("Relayer, signer or contract address not ready");
+      }
+
+      const kp = await generateKeypair();
+      const startTs = Math.floor(Date.now() / 1000).toString();
+      const daysValid = "7";
+
+      const eip = STATE.relayer.createEIP712(
+        kp.publicKey,
+        [CONFIG.contractAddress],
+        startTs,
+        daysValid
+      );
+
+      const sig = await STATE.signer.signTypedData(
+        eip.domain,
+        { UserDecryptRequestVerification: eip.types.UserDecryptRequestVerification },
+        eip.message
+      );
+
+      const userAddr = await STATE.signer.getAddress();
+
+      const out = await STATE.relayer.userDecrypt(
+        pairs,
+        kp.privateKey,
+        kp.publicKey,
+        sig.replace(/^0x/, ""),
+        [CONFIG.contractAddress],
+        userAddr,
+        startTs,
+        daysValid
+      );
+
+      coreLog("userDecrypt result", out);
+      return { out, pairs };
+    }
+
+    async function coreConfigure({ contractAddress, abi }) {
+      if (!contractAddress || !abi) throw new Error("configure() requires address + abi");
+      CONFIG.contractAddress = contractAddress;
+      CONFIG.abi = abi;
+      const urls = detectRelayerUrls();
+      CONFIG.relayerUrl = urls.relayerUrl;
+      CONFIG.gatewayUrl = urls.gatewayUrl;
+      coreLog("configure", { contractAddress, relayerUrl: CONFIG.relayerUrl, gatewayUrl: CONFIG.gatewayUrl });
+    }
+
+    async function coreConnectWallet() {
+      if (!CONFIG.contractAddress || !CONFIG.abi) {
+        throw new Error("configure() not called");
+      }
+      if (!window.ethereum?.request) {
+        throw new Error("No EIP-1193 provider (install MetaMask?)");
+      }
+
+      await ensureNetwork(CONFIG.chainIdHex);
+
+      const provider = new BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner();
+      const account = await signer.getAddress();
+      const contract = new Contract(CONFIG.contractAddress, CONFIG.abi, signer);
+
+      const relayer = await createInstance({
+        ...CONFIG.relayerNetworkConfig,
+        relayerUrl: CONFIG.relayerUrl,
+        gatewayUrl: CONFIG.gatewayUrl,
+        network: window.ethereum,
+        debug: true
+      });
+
+      STATE.provider = provider;
+      STATE.signer = signer;
+      STATE.contract = contract;
+      STATE.relayer = relayer;
+      STATE.account = account;
+
+      try {
+        STATE.owner = await contract.owner();
+      } catch {
+        STATE.owner = null;
+      }
+
+      coreLog("Connect done", { account: shortAddress(account) });
+      return { ...STATE };
+    }
+
+    async function coreDisconnectWallet() {
+      coreLog("Disconnect called");
+      STATE.provider = null;
+      STATE.signer = null;
+      STATE.contract = null;
+      STATE.relayer = null;
+      STATE.account = null;
+      STATE.owner = null;
+    }
+
+    async function coreAutoConnectIfAuthorized() {
+      if (!window.ethereum?.request) return false;
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_accounts" });
+        if (accounts && accounts.length) {
+          coreLog("autoConnectIfAuthorized → true", { accounts });
+          await coreConnectWallet();
+          window.ethereum.on?.("accountsChanged", () => window.location.reload());
+          window.ethereum.on?.("chainChanged", () => window.location.reload());
+          return true;
+        }
+      } catch (e) {
+        coreLog("autoConnectIfAuthorized error", e);
+      }
+      return false;
+    }
+
+    function coreGetState() { return { ...STATE }; }
+
+    async function coreEncryptUint16(value) {
+      if (!STATE.relayer || !STATE.account || !CONFIG.contractAddress) {
+        throw new Error("Relayer/account not ready");
+      }
+      const n = Number(value);
+      if (!Number.isInteger(n) || n < 0 || n > 65535) {
+        throw new Error("encryptUint16: value in [0,65535]");
+      }
+      const buf = STATE.relayer.createEncryptedInput(CONFIG.contractAddress, STATE.account);
+      buf.add16(n);
+      const { handles, inputProof } = await buf.encrypt();
+      const result = { handle: handles[0], handles, proof: inputProof };
+      coreLog("encryptUint16", { value: n, handle: result.handle });
+      return result;
+    }
+
+    async function coreUserDecryptHandles(handles) {
+      if (!Array.isArray(handles) || !handles.length) {
+        throw new Error("handles[] required");
+      }
+      const pairs = handles.map((h) =>
+        typeof h === "string"
+          ? { handle: h, contractAddress: CONFIG.contractAddress }
+          : { handle: h.handle, contractAddress: h.contractAddress || CONFIG.contractAddress }
+      );
+      coreLog("userDecryptHandles request", { count: pairs.length });
+      const { out } = await userDecryptMany(pairs);
+      const pick = buildValuePicker(out, pairs);
+      return { pick, raw: out, pairs };
+    }
+
+    function coreIsOwner() {
+      if (!STATE.account || !STATE.owner) return false;
+      return STATE.account.toLowerCase() === STATE.owner.toLowerCase();
+    }
+
+    const fheCore = {
+      configure: coreConfigure,
+      connectWallet: coreConnectWallet,
+      disconnectWallet: coreDisconnectWallet,
+      autoConnectIfAuthorized: coreAutoConnectIfAuthorized,
+      getState: coreGetState,
+      encryptUint16: coreEncryptUint16,
+      userDecryptHandles: coreUserDecryptHandles,
+      isOwner: coreIsOwner,
+      _shortAddress: shortAddress,
+      _log: coreLog
+    };
+
+    // === ABI ===
+    const CONTRACT_ABI = [
+      { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
+      {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          { "internalType": "bytes32", "name": "encMaxHp", "type": "bytes32" },
+          { "internalType": "bytes32", "name": "encDefense", "type": "bytes32" },
+          { "internalType": "bytes32", "name": "encAttack", "type": "bytes32" },
+          { "internalType": "bytes", "name": "proof", "type": "bytes" }
+        ],
+        "name": "configureBoss",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "getBossMeta",
+        "outputs": [{ "internalType": "bool", "name": "exists", "type": "bool" }],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "getBossHpHandles",
+        "outputs": [
+          { "internalType": "bytes32", "name": "maxHpHandle", "type": "bytes32" },
+          { "internalType": "bytes32", "name": "currentHpHandle", "type": "bytes32" }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "getMyCombatState",
+        "outputs": [
+          { "internalType": "bytes32", "name": "hpHandle", "type": "bytes32" },
+          { "internalType": "bytes32", "name": "lastHitHandle", "type": "bytes32" },
+          { "internalType": "bool", "name": "joined", "type": "bool" },
+          { "internalType": "bool", "name": "hasLastResult", "type": "bool" }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          { "internalType": "bytes32", "name": "encInitialHp", "type": "bytes32" },
+          { "internalType": "bytes", "name": "proof", "type": "bytes" }
+        ],
+        "name": "joinFight",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          { "internalType": "bytes32", "name": "encAttackPower", "type": "bytes32" },
+          { "internalType": "bytes32", "name": "encSpellId", "type": "bytes32" },
+          { "internalType": "bytes", "name": "proof", "type": "bytes" }
+        ],
+        "name": "attackBoss",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
     ];
 
-    let provider=null, signer=null, contract=null, relayer=null;
-    let currentAccount=null, ownerAddr=null;
+    // === UI state ===
+    const consoleBody = document.getElementById("console-body");
+    let playerMaxHp = null;
+    let bossMaxHp = null;
+    let lastPlayerHp = null;
+    let lastBossHp = null;
+    let lastHitSuccessFlag = null;
+    let isBusyConnect = false;
+    let isBusyJoin = false;
+    let isBusyAttack = false;
+    let isBusyBossConfig = false;
 
-    const tag=(t,ok)=>`<span class="tag ${ok?'ok':'bad'}">${t}</span>`;
-    const setDecision=(txt,ok=null)=>{
-      if(ok===true) decisionBox.innerHTML=`Decision: ${tag('ELIGIBLE',true)} <span class="muted small">(${txt})</span>`;
-      else if(ok===false) decisionBox.innerHTML=`Decision: ${tag('NOT ELIGIBLE',false)} <span class="muted small">(${txt})</span>`;
-      else decisionBox.innerHTML='Decision: <span class="tag">n/a</span>';
-    };
-    const short=(a)=>a?a.slice(0,6)+'…'+a.slice(-4):'—';
-
-    async function ensureSepolia(){
-      const id = await window.ethereum.request({ method:'eth_chainId' });
-      netPill.textContent = 'Network: ' + (id||'—');
-      if(id?.toLowerCase()!==CHAIN_ID_HEX){
-        try{ await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId: CHAIN_ID_HEX }] }); }catch(e){}
-      }
-      const now = await window.ethereum.request({ method:'eth_chainId' });
-      netPill.textContent = 'Network: ' + (now||'—');
+    function appendUiLog(msg, { kind = "info" } = {}) {
+      const line = document.createElement("div");
+      line.className = "console-line";
+      const p = document.createElement("span");
+      p.className = "prefix";
+      p.textContent = kind === "error" ? "[error]" : kind === "ok" ? "[ok]" : "[log]";
+      const t = document.createElement("span");
+      if (kind === "error") t.className = "error";
+      if (kind === "ok") t.className = "ok";
+      t.textContent = " " + msg;
+      line.appendChild(p); line.appendChild(t);
+      consoleBody.appendChild(line);
+      consoleBody.scrollTop = consoleBody.scrollHeight;
     }
 
-    async function connect(){
-      if(!window.ethereum?.request){ alert('Install MetaMask'); return; }
-      await window.ethereum.request({ method:'eth_requestAccounts' });
-      await ensureSepolia();
-
-      provider = new BrowserProvider(window.ethereum);
-      signer = await provider.getSigner();
-      currentAccount = await signer.getAddress();
-      accEl.textContent = short(currentAccount);
-
-      contract = new Contract(CONTRACT_ADDRESS, ABI, signer);
-      caddrEl.textContent = CONTRACT_ADDRESS;
-
-      try{ ownerAddr = await contract.owner(); cownerEl.textContent = short(ownerAddr); }
-      catch{ ownerAddr = null; cownerEl.textContent = '—'; }
-      isOwnerPill.textContent = 'owner: ' + (ownerAddr && currentAccount && ownerAddr.toLowerCase()===currentAccount.toLowerCase() ? 'yes' : 'no');
-
-      relayer = await createInstance({ ...SepoliaConfig, relayerUrl: RELAYER_URL, gatewayUrl: GATEWAY_URL, network: window.ethereum, debug: true });
-      relayerStateEl.textContent = 'ready' + (IS_HTTPS ? '' : ' (limited)') + (HAS_LOCAL_PROXY ? ' (proxy)' : '');
-      btnConnect.textContent = 'Disconnect';
+    function setLoadingState(kind, val) {
+      if (kind === "connect") isBusyConnect = val;
+      if (kind === "join") isBusyJoin = val;
+      if (kind === "attack") isBusyAttack = val;
+      if (kind === "boss-config") isBusyBossConfig = val;
+      syncButtonsDisabled();
     }
 
-    function disconnect(){
-      provider=signer=contract=relayer=null; currentAccount=null;
-      accEl.textContent='—'; btnConnect.textContent='Connect'; relayerStateEl.textContent='not ready';
-      setDecision(''); lastHandleEl.textContent='—'; handleOut.value='';
+    function syncButtonsDisabled() {
+      const { account } = fheCore.getState();
+      const connectBtn = document.getElementById("connect-btn");
+      const joinBtn = document.getElementById("join-btn");
+      const attackBtn = document.getElementById("attack-btn");
+      const bossConfigBtn = document.getElementById("boss-config-btn");
+      const playerPanel = document.getElementById("player-panel");
+      const joined = playerPanel?.getAttribute("data-joined") === "1";
+
+      const playerDead = lastPlayerHp !== null && lastPlayerHp === 0n;
+      const bossDead = lastBossHp !== null && lastBossHp === 0n;
+
+      connectBtn && (connectBtn.disabled = isBusyConnect);
+      joinBtn && (joinBtn.disabled = !account || isBusyJoin || isBusyConnect);
+      if (attackBtn) {
+        attackBtn.disabled =
+          !account || !joined || isBusyAttack || isBusyConnect || playerDead || bossDead;
+      }
+      bossConfigBtn && (bossConfigBtn.disabled = !fheCore.isOwner() || isBusyBossConfig);
     }
 
-    btnConnect.addEventListener('click', async()=>{ if(signer) disconnect(); else await connect(); });
-    btnCopy.addEventListener('click', async()=>{ if(!handleOut.value) return; await navigator.clipboard.writeText(handleOut.value); btnCopy.textContent='Copied'; setTimeout(()=>btnCopy.textContent='Copy',900); });
+    function updateConnectionUi() {
+      const state = fheCore.getState();
+      const connectLabel = document.getElementById("connect-label");
+      const accountPill = document.getElementById("account-pill");
+      const accountLabel = document.getElementById("account-label");
+      const ownerPill = document.getElementById("owner-pill");
+      const contractLabel = document.getElementById("contract-address-label");
+      const playerStatusDot = document.getElementById("player-status-dot");
+      const playerStatusText = document.getElementById("player-status-text");
+      const ownerConfigBlock = document.getElementById("owner-config-block");
 
-    // ===== Helpers for decrypt =====
-    function normalizePublicDecryptResult(out, handleHex){
-      if(Array.isArray(out)){
-        const first = out[0];
-        return typeof first === 'string' ? first : (first?.value ?? null);
+      if (contractLabel) {
+        contractLabel.textContent =
+          CONTRACT_ADDRESS.slice(0, 8) + "…" + CONTRACT_ADDRESS.slice(-4);
       }
-      if(out && typeof out==='object'){
-        const k = handleHex?.toLowerCase?.();
-        const v = out[handleHex] ?? out[k];
-        return (typeof v==='object' && v!==null && 'value' in v) ? v.value : v;
+
+      if (!state.account) {
+        connectLabel.textContent = "Connect wallet";
+        accountPill.style.display = "none";
+        ownerPill.style.display = "none";
+        playerStatusDot.classList.remove("live");
+        playerStatusText.textContent = "Wallet not connected";
+        ownerConfigBlock.style.display = "none";
+      } else {
+        connectLabel.textContent = "Disconnect";
+        accountPill.style.display = "inline-flex";
+        accountLabel.textContent = fheCore._shortAddress(state.account);
+        playerStatusDot.classList.add("live");
+        playerStatusText.textContent =
+          "Connected as " + fheCore._shortAddress(state.account);
+        const isOwner = fheCore.isOwner();
+        ownerPill.style.display = isOwner ? "inline-flex" : "none";
+        ownerConfigBlock.style.display = isOwner ? "flex" : "none";
       }
-      return null;
+
+      syncButtonsDisabled();
     }
 
-    async function smartDecrypt(handleHex, mode='auto'){
-      if(!relayer || !contract) throw new Error('Connect wallet first');
-      const pair = { handle: String(handleHex), contractAddress: CONTRACT_ADDRESS };
+    async function refreshBossMeta() {
+      const { contract } = fheCore.getState();
+      const pill = document.getElementById("boss-status-pill");
+      const text = document.getElementById("boss-status-text");
+      const caption = document.getElementById("boss-status-caption");
+      const metaStatus = document.getElementById("boss-meta-status");
+      const dot = document.getElementById("boss-status-dot-small");
 
-      // 1) public (pairs)
-      if(mode==='auto' || mode==='public'){
-        try{
-          const out = await relayer.publicDecrypt([pair]);
-          const v = normalizePublicDecryptResult(out, String(handleHex));
-          if(v!=null) return BigInt(v)===1n;
-        }catch(e){ if(mode==='public') throw e; }
-
-        // 2) public (handles only)
-        try{
-          const out2 = await relayer.publicDecrypt([String(handleHex)]);
-          const v2 = normalizePublicDecryptResult(out2, String(handleHex));
-          if(v2!=null) return BigInt(v2)===1n;
-        }catch(e){ if(mode==='public') throw e; }
+      if (!contract) {
+        pill.classList.remove("pill-boss-ready");
+        pill.classList.add("pill-boss-waiting");
+        text.textContent = "Connect to check boss";
+        caption.textContent = "Connect wallet to read boss status";
+        metaStatus.textContent = "unknown";
+        dot.classList.remove("live");
+        return;
       }
 
-      // 3) signed userDecrypt
-      if(mode!=='public'){
-        if(!IS_HTTPS) throw new Error('Open over HTTPS to use signed decrypt');
-        const kp = await generateKeypair();
-        const startTs = Math.floor(Date.now()/1000).toString();
-        const daysValid = '7';
-        const eip = relayer.createEIP712(kp.publicKey, [CONTRACT_ADDRESS], startTs, daysValid);
-        const sig = await signer.signTypedData(eip.domain, { UserDecryptRequestVerification: eip.types.UserDecryptRequestVerification }, eip.message);
-        const out = await relayer.userDecrypt(
-          [pair],
-          kp.privateKey, kp.publicKey, sig.replace('0x',''),
-          [CONTRACT_ADDRESS], await signer.getAddress(), startTs, daysValid
+      try {
+        const exists = await contract.getBossMeta();
+        if (exists) {
+          pill.classList.add("pill-boss-ready");
+          pill.classList.remove("pill-boss-waiting");
+          text.textContent = "Boss ready";
+          caption.textContent = "Boss stats are fully encrypted";
+          metaStatus.textContent = "lurking in ciphertext";
+          dot.classList.add("live");
+        } else {
+          pill.classList.remove("pill-boss-ready");
+          pill.classList.add("pill-boss-waiting");
+          text.textContent = "Boss not configured";
+          caption.textContent = "Owner can configure encrypted HP / defense / attack";
+          metaStatus.textContent = "awaiting configuration";
+          dot.classList.remove("live");
+        }
+      } catch (e) {
+        appendUiLog("Failed to read boss meta: " + (e?.message || e), { kind: "error" });
+      }
+    }
+
+    function updatePlayerHpUi(hpBig) {
+      const shell = document.getElementById("hp-bar-shell");
+      const fill = document.getElementById("hp-bar-fill");
+      const label = document.getElementById("hp-value");
+      const small = document.getElementById("hp-label-small");
+
+      lastPlayerHp = hpBig;
+
+      if (hpBig == null) {
+        fill.style.transform = "scaleX(0)";
+        shell.dataset.low = "0";
+        label.textContent = "HP: —";
+        small.textContent = "join the fight to reveal";
+        return;
+      }
+
+      if (playerMaxHp === null || hpBig > playerMaxHp) {
+        playerMaxHp = hpBig;
+      }
+
+      let pct = 0;
+      if (playerMaxHp && playerMaxHp > 0n) {
+        pct = Number((hpBig * 100n) / playerMaxHp);
+      }
+      const scale = Math.max(0, Math.min(1, pct / 100));
+
+      fill.style.transform = "scaleX(" + scale + ")";
+      shell.dataset.low = pct <= 25 ? "1" : "0";
+      label.textContent = "HP: " + hpBig.toString();
+      small.textContent = playerMaxHp ? "max: " + playerMaxHp.toString() : "";
+
+      syncButtonsDisabled();
+    }
+
+    function updateBossHpUi(hpBig, maxBig) {
+      const shell = document.getElementById("boss-hp-bar-shell");
+      const fill = document.getElementById("boss-hp-bar-fill");
+      const label = document.getElementById("boss-hp-value");
+      const small = document.getElementById("boss-hp-label-small");
+
+      if (maxBig != null) bossMaxHp = maxBig;
+      lastBossHp = hpBig;
+
+      if (hpBig == null || bossMaxHp == null || bossMaxHp === 0n) {
+        fill.style.transform = "scaleX(0)";
+        shell.dataset.low = "0";
+        label.textContent = "HP: —";
+        small.textContent = "join to decrypt";
+        syncButtonsDisabled();
+        return;
+      }
+
+      let pct = Number((hpBig * 100n) / bossMaxHp);
+      const scale = Math.max(0, Math.min(1, pct / 100));
+
+      fill.style.transform = "scaleX(" + scale + ")";
+      shell.dataset.low = pct <= 25 ? "1" : "0";
+      label.textContent = "HP: " + hpBig.toString();
+      small.textContent = "max: " + bossMaxHp.toString();
+
+      const status = document.getElementById("boss-meta-status");
+      if (hpBig === 0n) status.textContent = "defeated";
+      else status.textContent = "lurking in ciphertext";
+
+      syncButtonsDisabled();
+    }
+
+    function updateLastHitUi({ hasResult, hitBig }) {
+      const chip = document.getElementById("last-hit-chip");
+      const text = document.getElementById("last-hit-text");
+      if (!hasResult || hitBig == null) {
+        chip.dataset.state = "none";
+        text.textContent = "No attacks yet";
+        lastHitSuccessFlag = null;
+        return;
+      }
+      const isSuccess = hitBig !== 0n;
+      lastHitSuccessFlag = hitBig;
+      chip.dataset.state = isSuccess ? "success" : "blocked";
+      text.textContent = isSuccess ? "Last hit: successful" : "Last hit: blocked";
+    }
+
+    function updateBattleResultUi() {
+      const box = document.getElementById("battle-result");
+      const title = document.getElementById("battle-result-title");
+      const desc = document.getElementById("battle-result-desc");
+      const meta = document.getElementById("battle-result-meta");
+
+      const hpText =
+        "Your HP: " +
+        (lastPlayerHp == null ? "—" : lastPlayerHp.toString()) +
+        " · Boss HP: " +
+        (lastBossHp == null ? "—" : lastBossHp.toString());
+      meta.textContent = hpText;
+
+      if (lastPlayerHp === null || lastBossHp === null) {
+        box.dataset.state = "none";
+        title.textContent = "No result yet";
+        desc.textContent = "Join the fight and land at least one attack.";
+        return;
+      }
+
+      if (lastPlayerHp === 0n && lastBossHp === 0n) {
+        box.dataset.state = "draw";
+        title.textContent = "Draw";
+        desc.textContent = "Both HP bars collapsed to zero in encrypted darkness.";
+        return;
+      }
+
+      if (lastPlayerHp === 0n) {
+        box.dataset.state = "defeat";
+        title.textContent = "Defeat";
+        desc.textContent = "The encrypted boss reduced your HP to zero.";
+        return;
+      }
+
+      if (lastBossHp === 0n) {
+        box.dataset.state = "victory";
+        title.textContent = "Victory!";
+        desc.textContent = "You brought the boss HP to zero under FHE.";
+        return;
+      }
+
+      box.dataset.state = "ongoing";
+      title.textContent = "Battle in progress";
+      const hitPart =
+        lastHitSuccessFlag == null
+          ? ""
+          : lastHitSuccessFlag !== 0n
+          ? " Last hit was successful."
+          : " Last hit was blocked.";
+      desc.textContent =
+        "Keep attacking — whoever hits zero HP first loses." + hitPart;
+    }
+
+    async function refreshPlayerAndBossState() {
+      const { contract, account } = fheCore.getState();
+      const playerPanel = document.getElementById("player-panel");
+
+      if (!contract || !account) {
+        playerPanel.setAttribute("data-joined", "0");
+        lastPlayerHp = null;
+        lastBossHp = null;
+        updatePlayerHpUi(null);
+        updateBossHpUi(null, null);
+        updateLastHitUi({ hasResult: false, hitBig: null });
+        updateBattleResultUi();
+        return;
+      }
+
+      try {
+        const [hpHandle, lastHitHandle, joined, hasLastResult] =
+          await contract.getMyCombatState();
+
+        if (!joined) {
+          playerPanel.setAttribute("data-joined", "0");
+          lastPlayerHp = null;
+          lastBossHp = null;
+          playerMaxHp = null;
+          updatePlayerHpUi(null);
+          updateBossHpUi(null, null);
+          updateLastHitUi({ hasResult: false, hitBig: null });
+          updateBattleResultUi();
+          appendUiLog("No active run yet. Use Join fight to start.", { kind: "info" });
+          return;
+        }
+        playerPanel.setAttribute("data-joined", "1");
+
+        const [bossMaxHandle, bossCurHandle] = await contract.getBossHpHandles();
+
+        const handles = [hpHandle, bossMaxHandle, bossCurHandle];
+        if (hasLastResult) handles.push(lastHitHandle);
+
+        const { pick } = await fheCore.userDecryptHandles(handles);
+
+        const hpBig = pick(hpHandle);
+        const bossMaxBig = pick(bossMaxHandle);
+        const bossCurBig = pick(bossCurHandle);
+        const hitBig = hasLastResult ? pick(lastHitHandle) : null;
+
+        updatePlayerHpUi(hpBig);
+        updateBossHpUi(bossCurBig, bossMaxBig);
+        updateLastHitUi({ hasResult: hasLastResult, hitBig });
+        updateBattleResultUi();
+
+        const hitText =
+          hasLastResult && hitBig != null
+            ? hitBig !== 0n
+              ? "hit=success"
+              : "hit=blocked"
+            : "hit=—";
+        appendUiLog(
+          `snapshot: you=${hpBig ?? "?"} boss=${bossCurBig ?? "?"} ${hitText}`,
+          { kind: "info" }
         );
-        const picked = out[String(handleHex)] ?? out[String(handleHex).toLowerCase()];
-        if(picked==null) throw new Error('userDecrypt returned empty');
-        return BigInt(picked)===1n;
-      }
 
-      throw new Error('Decrypt failed');
+        if (hpBig === 0n && bossCurBig === 0n) {
+          appendUiLog("result: draw (both HP reached 0)", { kind: "ok" });
+        } else if (hpBig === 0n) {
+          appendUiLog("result: defeat (your HP reached 0)", { kind: "error" });
+        } else if (bossCurBig === 0n) {
+          appendUiLog("result: victory (boss HP reached 0)", { kind: "ok" });
+        } else {
+          appendUiLog("turn: resolved and decrypted.", { kind: "ok" });
+        }
+      } catch (e) {
+        appendUiLog("Failed to refresh state: " + (e?.message || e), { kind: "error" });
+      }
     }
 
-    // === Encrypt & Evaluate (NO auto-decrypt earlier; now we auto-try) ===
-    btnEval.addEventListener('click', async()=>{
-      try{
-        if(!signer || !contract || !relayer) throw new Error('Connect wallet first');
-        const planId = BigInt(planIdEl.value||'0');
-        const kyc = Number(kycEl.value||'0')|0;
-        const tenure = Number(tenureEl.value||'0')|0;
-        const volume = Number(volumeEl.value||'0')|0;
-        if(planId<=0n) throw new Error('Bad planId');
+    async function handleConnect() {
+      const { account } = fheCore.getState();
+      try {
+        setLoadingState("connect", true);
+        if (!account) {
+          appendUiLog("wallet: connecting…");
+          await fheCore.configure({ contractAddress: CONTRACT_ADDRESS, abi: CONTRACT_ABI });
+          await fheCore.connectWallet();
+          appendUiLog("wallet: connected.", { kind: "ok" });
 
-        setDecision('encrypting …');
-        const enc = relayer.createEncryptedInput(CONTRACT_ADDRESS, currentAccount);
-        enc.add8(kyc); enc.add16(tenure); enc.add32(volume);
-        const { handles, inputProof } = await enc.encrypt();
+          if (window.ethereum?.on) {
+            window.ethereum.on("accountsChanged", () => window.location.reload());
+            window.ethereum.on("chainChanged", () => window.location.reload());
+          }
+        } else {
+          appendUiLog("wallet: disconnecting…");
+          await fheCore.disconnectWallet();
+          appendUiLog("wallet: disconnected.", { kind: "ok" });
+          lastPlayerHp = null;
+          lastBossHp = null;
+          playerMaxHp = null;
+          bossMaxHp = null;
+        }
+      } catch (e) {
+        appendUiLog("wallet: error → " + (e?.message || e), { kind: "error" });
+      } finally {
+        setLoadingState("connect", false);
+        updateConnectionUi();
+        await refreshBossMeta();
+        await refreshPlayerAndBossState();
+      }
+    }
 
-        const tx = await contract.evaluateEligibilityEncrypted(planId, handles[0], handles[1], handles[2], inputProof);
+    async function handleJoin() {
+      const { account } = fheCore.getState();
+      if (!account) {
+        appendUiLog("join: connect wallet first.", { kind: "error" });
+        return;
+      }
+
+      const input = document.getElementById("join-hp-input");
+      const val = Number(input.value || 0);
+      if (!Number.isFinite(val) || val < 0 || val > 65535) {
+        appendUiLog("join: initial HP must be 0–65535.", { kind: "error" });
+        return;
+      }
+
+      try {
+        setLoadingState("join", true);
+        appendUiLog(`enc/join: hp=${val}`, { kind: "info" });
+
+        const enc = await fheCore.encryptUint16(val);
+        coreLog("joinFight encrypt", {
+          initialHp: val,
+          handle: enc.handle,
+          proof: enc.proof
+        });
+
+        const { contract } = fheCore.getState();
+        const tx = await contract.joinFight(enc.handle, enc.proof);
+        coreLog("joinFight tx sent", { hash: tx.hash });
         await tx.wait();
+        appendUiLog("tx/join: mined, refreshing encrypted state…", { kind: "ok" });
 
-        const h = await contract.getMyEligibilityHandle(planId);
-        handleOut.value = h; lastHandleEl.textContent = h;
+        playerMaxHp = null;
+        await refreshPlayerAndBossState();
+      } catch (e) {
+        appendUiLog("join: failed → " + (e?.message || e), { kind: "error" });
+      } finally {
+        setLoadingState("join", false);
+      }
+    }
 
-        // AUTO decrypt cascade right after evaluation
-        try{
-          const ok = await smartDecrypt(h, 'auto');
-          setDecision('auto decrypt', ok);
-        }catch(e){ setDecision('stored handle — use buttons to decrypt'); }
-      }catch(e){ console.error(e); alert(e?.message||'Failed'); setDecision('error'); }
-    });
+    async function handleAttack() {
+      const { account, contract, relayer } = fheCore.getState();
+      if (!account || !contract || !relayer) {
+        appendUiLog("attack: connect wallet first.", { kind: "error" });
+        return;
+      }
 
-    // Make public (on-chain)
-    btnMakePublic.addEventListener('click', async()=>{
-      try{
-        if(!signer || !contract) throw new Error('Connect wallet first');
-        const planId = BigInt(planIdEl.value||'0');
-        const tx = await contract.makeMyEligibilityPublic(planId);
-        await tx.wait();
-        const h = await contract.getMyEligibilityHandle(planId);
-        handleOut.value = h; lastHandleEl.textContent = h;
-        setDecision('made public — now try Decrypt (public)');
-      }catch(e){ console.error(e); alert(e?.message||'Failed'); }
-    });
+      const playerDead = lastPlayerHp !== null && lastPlayerHp === 0n;
+      const bossDead = lastBossHp !== null && lastBossHp === 0n;
+      if (playerDead || bossDead) {
+        appendUiLog("attack: fight is over. Use Join fight for a new run.", {
+          kind: "error"
+        });
+        return;
+      }
 
-    // === Replaced handlers: use smartDecrypt ===
-    btnPublicDecrypt.addEventListener('click', async()=>{
-      try{
-        const planId = BigInt(planIdEl.value||'0');
-        const h = handleOut.value || await contract.getMyEligibilityHandle(planId);
-        if(!h || String(h)==='0x'+'0'.repeat(64)) throw new Error('No decision handle. Evaluate first.');
-        const ok = await smartDecrypt(String(h), 'public');
-        setDecision('public decrypt', ok);
-      }catch(e){ console.error('public decrypt failed:', e); alert(e?.message||'Public decrypt failed'); setDecision('error'); }
-    });
+      const playerPanel = document.getElementById("player-panel");
+      const joined = playerPanel.getAttribute("data-joined") === "1";
+      if (!joined) {
+        appendUiLog("attack: join the fight before attacking.", { kind: "error" });
+        return;
+      }
 
-    btnUserDecrypt.addEventListener('click', async()=>{
-      try{
-        const planId = BigInt(planIdEl.value||'0');
-        const h = handleOut.value || await contract.getMyEligibilityHandle(planId);
-        if(!h || String(h)==='0x'+'0'.repeat(64)) throw new Error('No decision handle');
-        const ok = await smartDecrypt(String(h), 'signed');
-        setDecision('signed decrypt', ok);
-      }catch(e){ console.error(e); alert(e?.message||'Failed'); }
-    });
+      const atkInput = document.getElementById("attack-power-input");
+      const powerChip = document.getElementById("spell-power-chip");
+      let atk = Number(atkInput.value || 0);
+      if (!Number.isFinite(atk) || atk < 0 || atk > 65535) {
+        appendUiLog("attack: power must be 0–65535.", { kind: "error" });
+        return;
+      }
+      const spellId = powerChip.dataset.selected === "true" ? 1 : 0;
 
-    // === Admin: set encrypted policy ===
-    btnSetPolicy.addEventListener('click', async()=>{
-      try{
-        if(!signer || !contract || !relayer) throw new Error('Connect wallet first');
-        if(!ownerAddr || ownerAddr.toLowerCase()!== (await signer.getAddress()).toLowerCase()) throw new Error('Owner only');
-        const planId = BigInt(pPlanEl.value||'0');
-        const a=Number(pKycEl.value||'0')|0, b=Number(pTenureEl.value||'0')|0, c=Number(pVolEl.value||'0')|0, d=Number(pPassEl.value||'0')|0;
-        if(planId<=0n) throw new Error('Bad planId');
+      try {
+        setLoadingState("attack", true);
+        appendUiLog(`enc/attack: power=${atk} spell=${spellId}`, { kind: "info" });
 
-        const buf = relayer.createEncryptedInput(CONTRACT_ADDRESS, await signer.getAddress());
-        buf.add8(a); buf.add16(b); buf.add32(c); buf.add8(d);
+        const buf = relayer.createEncryptedInput(CONTRACT_ADDRESS, account);
+        buf.add16(atk);
+        buf.add16(spellId);
         const { handles, inputProof } = await buf.encrypt();
 
-        const tx = await contract.setPolicyEncrypted(planId, handles[0], handles[1], handles[2], handles[3], inputProof);
-        await tx.wait(); alert('Policy set ✓');
-      }catch(e){ console.error(e); alert(e?.message||'Failed'); }
-    });
+        coreLog("attackBoss encrypt", {
+          attack: atk,
+          spellId,
+          handles,
+          proof: inputProof
+        });
 
-    if(window.ethereum){
-      window.ethereum.on?.('accountsChanged', ()=>location.reload());
-      window.ethereum.on?.('chainChanged', ()=>location.reload());
-      try{ const a = await window.ethereum.request({ method:'eth_accounts' }); if(a && a.length) await connect(); }catch{}
+        const tx = await contract.attackBoss(handles[0], handles[1], inputProof);
+        coreLog("attackBoss tx sent", { hash: tx.hash });
+        await tx.wait();
+        appendUiLog("tx/attack: mined, decrypting HP snapshot…", { kind: "ok" });
+
+        await refreshPlayerAndBossState();
+      } catch (e) {
+        appendUiLog("attack: failed → " + (e?.message || e), { kind: "error" });
+      } finally {
+        setLoadingState("attack", false);
+      }
     }
+
+    async function handleBossConfig() {
+      if (!fheCore.isOwner()) {
+        appendUiLog("boss-config: only owner can configure boss.", { kind: "error" });
+        return;
+      }
+
+      const hpInput = document.getElementById("boss-hp-input");
+      const defInput = document.getElementById("boss-def-input");
+      const atkInput = document.getElementById("boss-atk-input");
+
+      let maxHp = Number(hpInput.value || 0);
+      let defense = Number(defInput.value || 0);
+      let attack = Number(atkInput.value || 0);
+
+      for (const [label, v] of [
+        ["max HP", maxHp],
+        ["defense", defense],
+        ["attack", attack]
+      ]) {
+        if (!Number.isFinite(v) || v < 0 || v > 65535) {
+          appendUiLog(`boss-config: ${label} must be 0–65535.`, { kind: "error" });
+          return;
+        }
+      }
+
+      try {
+        setLoadingState("boss-config", true);
+        const { relayer, account, contract } = fheCore.getState();
+
+        appendUiLog(
+          `enc/boss: max=${maxHp} def=${defense} atk=${attack}`,
+          { kind: "info" }
+        );
+
+        const buf = relayer.createEncryptedInput(CONTRACT_ADDRESS, account);
+        buf.add16(maxHp);
+        buf.add16(defense);
+        buf.add16(attack);
+        const { handles, inputProof } = await buf.encrypt();
+
+        coreLog("configureBoss encrypt", {
+          maxHp,
+          defense,
+          attack,
+          handles,
+          proof: inputProof
+        });
+
+        const tx = await contract.configureBoss(handles[0], handles[1], handles[2], inputProof);
+        coreLog("configureBoss tx sent", { hash: tx.hash });
+        await tx.wait();
+
+        appendUiLog("tx/boss-config: mined, boss template updated.", { kind: "ok" });
+        await refreshBossMeta();
+        await refreshPlayerAndBossState();
+      } catch (e) {
+        appendUiLog("boss-config: failed → " + (e?.message || e), { kind: "error" });
+      } finally {
+        setLoadingState("boss-config", false);
+      }
+    }
+
+    function setupSpellToggle() {
+      const basic = document.getElementById("spell-basic-chip");
+      const power = document.getElementById("spell-power-chip");
+      function select(which) {
+        basic.dataset.selected = which === "basic" ? "true" : "false";
+        power.dataset.selected = which === "power" ? "true" : "false";
+      }
+      basic.addEventListener("click", () => select("basic"));
+      power.addEventListener("click", () => select("power"));
+    }
+
+    function setupAttackSlider() {
+      const slider = document.getElementById("attack-power-input");
+      const label = document.getElementById("attack-power-label");
+      const update = () => (label.textContent = slider.value);
+      slider.addEventListener("input", update);
+      update();
+    }
+
+    async function initApp() {
+      await fheCore.configure({ contractAddress: CONTRACT_ADDRESS, abi: CONTRACT_ABI });
+      setupSpellToggle();
+      setupAttackSlider();
+
+      document.getElementById("connect-btn").addEventListener("click", () =>
+        handleConnect().catch((e) =>
+          appendUiLog("connect handler error: " + (e?.message || e), { kind: "error" })
+        )
+      );
+      document.getElementById("join-btn").addEventListener("click", () =>
+        handleJoin().catch((e) =>
+          appendUiLog("join handler error: " + (e?.message || e), { kind: "error" })
+        )
+      );
+      document.getElementById("attack-btn").addEventListener("click", () =>
+        handleAttack().catch((e) =>
+          appendUiLog("attack handler error: " + (e?.message || e), { kind: "error" })
+        )
+      );
+      document.getElementById("boss-config-btn").addEventListener("click", () =>
+        handleBossConfig().catch((e) =>
+          appendUiLog("boss-config handler error: " + (e?.message || e), { kind: "error" })
+        )
+      );
+
+      try {
+        const auto = await fheCore.autoConnectIfAuthorized();
+        if (auto) appendUiLog("wallet: already authorized; auto-connected.", { kind: "ok" });
+      } catch (e) {
+        appendUiLog("autoConnect error: " + (e?.message || e), { kind: "error" });
+      }
+
+      updateConnectionUi();
+      await refreshBossMeta();
+      await refreshPlayerAndBossState();
+      updateBattleResultUi();
+    }
+
+    initApp().catch((e) => {
+      appendUiLog("Fatal init error: " + (e?.message || e), { kind: "error" });
+      fheCore._log("init error", e);
+    });
   </script>
 </body>
 </html>
